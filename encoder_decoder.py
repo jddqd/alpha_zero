@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 import numpy as np
 from chess_clone import board as chessboard
 

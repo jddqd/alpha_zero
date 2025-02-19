@@ -125,3 +125,8 @@ class ChessRL:
         
         move_uci = self.index_to_move[index]
         return chess.Move.from_uci(move_uci)
+
+
+
+board = ChessRL()
+print(board.get_initial_state())

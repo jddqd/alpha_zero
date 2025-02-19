@@ -130,5 +130,13 @@ class ChessRL:
 
 board = ChessRL()
 
+state = board.get_initial_state()
+
+valid_moves = board.get_valid_moves(state)
+move = np.where(valid_moves == 1)[0][0]
+
+
+next_state = board.get_next_state(state, move, 1)
+
 print(board.get_valid_moves(board.get_initial_state()).sum())
 
