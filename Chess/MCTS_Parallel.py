@@ -6,7 +6,6 @@ from tqdm.auto import trange
 import random
 
 import chess
-from encoder_decoder import encode_board
 
 
 class Node:
@@ -57,9 +56,13 @@ class Node:
                 board_copy = board.copy()
                 child_state = board_copy.fen()
 
-                # child_state = self.state.copy()
+                # action = np.zeros(self.game.action_size)
+                # action[action] = 1
+
+                # print(action)
+
                 child_state = self.game.get_next_state(child_state, action, 1)
-                child_state = self.game.change_perspective(child_state, player=-1)
+                # child_state = self.game.change_perspective(child_state, player=-1)
                 child = Node(self.game, self.args, child_state, self, action, prob)
                 self.children.append(child)
 
@@ -82,7 +85,7 @@ class MCTSParallel:
         self.args = args
         self.model = model.to(model.device)
     
-    # Use for prediction, not training
+    # Use for prediction, to train Resnet
     @torch.no_grad()
     def search(self, states, spGames):
 
@@ -112,19 +115,25 @@ class MCTSParallel:
 
         for i, spg in enumerate(spGames):
             spg_policy = policy[i]
-
-            print(states[i])
+            
+            board = chess.Board(states[i])
+            print(board)
+            print("-------------------" )
 
             valid_moves = self.game.get_valid_moves(states[i])
 
-            print(valid_moves.sum())
+            # print("spg_policy", spg_policy)
+            # print("valid_moves", valid_moves.sum())
 
-            spg_policy = spg_policy * valid_moves
+            spg_policy *= valid_moves
 
             # renormalize
             spg_policy = spg_policy / np.sum(spg_policy)
 
+
             spg.root = Node(self.game, self.args, states[i], visit_count=1)
+
+            # print("spg_policy", spg_policy.sum())
             spg.root.expand(spg_policy)
 
 

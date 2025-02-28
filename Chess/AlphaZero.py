@@ -5,7 +5,7 @@ import torch.nn.functional as F
 from tqdm.auto import trange
 import random
 
-from Alpha_MCTS import MCTSParallel
+from MCTS_Parallel import MCTSParallel
 
 class AlphaZeroParallel:
     def __init__(self, model, optimizer, game, args):
@@ -24,10 +24,17 @@ class AlphaZeroParallel:
         while len(spGames) > 0:
             states = np.stack([spg.state for spg in spGames])
 
-            opponent = self.game.get_opponent(player)
-            neutral_states = self.game.change_perspective(states, player)
+            # liste = []
+            # for state in states:
+            #     liste.append(self.game.change_perspective(state, player))
+            # liste = np.array(liste)
+
+            neutral_states = states
+            
+            # neutral_states = self.game.change_perspective(states, player)
 
             self.mcts.search(neutral_states, spGames)
+
 
             for i in range(len(spGames))[::-1]:
 
@@ -97,8 +104,6 @@ class AlphaZeroParallel:
 
             loss.backward()
             self.optimizer.step()
-
-
 
 
     def learn(self):

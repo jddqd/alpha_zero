@@ -13,7 +13,9 @@ class ChessRL:
 
 
     def _generate_all_moves(self):
-        """Génère tous les coups UCI possibles aux échecs, indépendamment de l'état du plateau."""
+        
+        # Génére tous les coups UCI possibles
+
         all_moves = set()
         board = chess.Board.empty()  # Échiquier vide pour générer tous les coups possibles
 
@@ -30,7 +32,6 @@ class ChessRL:
             chess.KING: [chess.Move(from_sq, to_sq) for from_sq in squares for to_sq in squares if max(abs(from_sq // 8 - to_sq // 8), abs(from_sq % 8 - to_sq % 8)) == 1]
         }
 
-        # Ajoute tous les coups non spécifiques aux règles
         for move_list in piece_moves.values():
             for move in move_list:
                 all_moves.add(move.uci())
@@ -39,18 +40,42 @@ class ChessRL:
         promotion_pieces = ['q', 'r', 'b', 'n']
         for file in range(8):
             for piece in promotion_pieces:
+                # Promotions de pion sans capture
                 all_moves.add(f"{chr(97 + file)}7{chr(97 + file)}8{piece}")  # Blancs
                 all_moves.add(f"{chr(97 + file)}2{chr(97 + file)}1{piece}")  # Noirs
 
-        # Ajoute les roques
-        all_moves.update(["e1g1", "e1c1", "e8g8", "e8c8"])  # Petit et grand roque
+            # Promotions avec captures diagonales pour pions blancs
+            if file > 0:
+                # Capture et promotion à gauche
+                all_moves.update([
+                    f"{chr(97 + file)}7{chr(97 + file - 1)}8{piece}" for piece in promotion_pieces
+                ])
+            if file < 7:
+                # Capture et promotion à droite
+                all_moves.update([
+                    f"{chr(97 + file)}7{chr(97 + file + 1)}8{piece}" for piece in promotion_pieces
+                ])
 
-        # Ajoute les prises en passant (théoriquement possibles)
+            # Pareil pour les pions noirs
+            if file > 0:
+                all_moves.update([
+                    f"{chr(97 + file)}2{chr(97 + file - 1)}1{piece}" for piece in promotion_pieces
+                ])
+            if file < 7:
+                all_moves.update([
+                    f"{chr(97 + file)}2{chr(97 + file + 1)}1{piece}" for piece in promotion_pieces
+                ])
+
+
+        # Ajoute les roques
+        all_moves.update(["e1g1", "e1c1", "e8g8", "e8c8"])
+
+        # Ajoute les prises en passant 
         for file in range(8):
             all_moves.add(f"{chr(97 + file)}5{chr(97 + file + (-1 if file > 0 else 1))}6")  # Blancs en passant
             all_moves.add(f"{chr(97 + file)}4{chr(97 + file + (-1 if file > 0 else 1))}3")  # Noirs en passant
 
-        return sorted(all_moves)  # Trie pour assurer un ordre fixe
+        return sorted(all_moves)
 
     def get_initial_state(self):
         return self.board.fen()
@@ -65,7 +90,7 @@ class ChessRL:
     def get_valid_moves(self, state):
         board = chess.Board(state)
         valid_moves = np.zeros(self.action_size, dtype=np.uint8)
-        for move in board.legal_moves:
+        for i, move in enumerate(board.legal_moves):
             idx = np.where(self.encode_move(move) == 1)[0][0]
             valid_moves[idx] = 1
         return valid_moves
@@ -91,9 +116,11 @@ class ChessRL:
         return -value
 
     def change_perspective(self, state, player):
-        return state if player == 1 else self.flip_board(state)
+        return self.flip_board(state)
 
     def get_encoded_state(self, state):
+        # On encode l'état du plateau en un tenseur 12x8x8 pour les 12 types de pièces (6 type de pièce par joueur * 2 joueurs)
+
         board = chess.Board(state)
         encoded_state = np.zeros((12, 8, 8), dtype=np.float32)
         for square in chess.SQUARES:
@@ -108,7 +135,7 @@ class ChessRL:
         return board.fen()
 
     def encode_move(self, move):
-        """Encode un coup UCI en one-hot (index unique)."""
+        # Encode un coup UCI en one-hot
 
         move_uci = move.uci()
         if move_uci not in self.move_to_index:
@@ -119,24 +146,9 @@ class ChessRL:
         return one_hot
 
     def decode_move(self, index):
-        """Décodage d'un index en coup UCI."""
+        # Décodage d'un index en coup UCI.
         if index < 0 or index >= self.action_size:
             raise ValueError(f"Index de mouvement hors limite : {index}")
         
         move_uci = self.index_to_move[index]
         return chess.Move.from_uci(move_uci)
-
-
-
-board = ChessRL()
-
-state = board.get_initial_state()
-
-valid_moves = board.get_valid_moves(state)
-move = np.where(valid_moves == 1)[0][0]
-
-
-next_state = board.get_next_state(state, move, 1)
-
-print(board.get_valid_moves(board.get_initial_state()).sum())
-

@@ -5,6 +5,9 @@ import torch.nn.functional as F
 from tqdm.auto import trange
 import random
 
+
+# Adapté à 22 channels, tout est encodé 
+
 class ResNet(nn.Module):
     def __init__(self, game, num_resBlocks, num_hidden, device):
         super(ResNet, self).__init__()
@@ -38,7 +41,6 @@ class ResNet(nn.Module):
             )
     
     def forward(self, x):
-
         x = self.startBlock(x)
         for block in self.backBone:
             x = block(x)
